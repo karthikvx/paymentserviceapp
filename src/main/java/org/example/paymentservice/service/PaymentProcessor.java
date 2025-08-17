@@ -13,10 +13,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class PaymentProcessor {
@@ -34,11 +36,15 @@ public class PaymentProcessor {
     @Autowired
     private PaymentMapper paymentMapper;
 
-    @KafkaListener(topics = "${kafka.topic.payments}", groupId = "${kafka.group-id}")
+    // Virtual threads automatically used for Kafka listeners
+    @KafkaListener(topics = "${kafka.topic.payments}", groupId = "${kafka.group-id}",
+            concurrency = "10") // Higher concurrency with virtual threads
     @Transactional
     public void processPaymentEvent(PaymentEvent event) {
         try {
-            // 1. Sync fraud check (low-latency)
+            log.debug("Processing payment on thread: {}", Thread.currentThread());
+
+            // 1. Async fraud check - virtual threads handle I/O efficiently
             FraudResponse fraudResponse = fraudCheckClient.check(event);
 
             if (fraudResponse.isApproved()) {
@@ -46,20 +52,30 @@ public class PaymentProcessor {
                 Payment payment = paymentMapper.toEntity(event);
                 paymentRepo.save(payment);
 
-                // 3. Publish settlement event
-                kafkaTemplate.send("settlements", payment.getPaymentId(),
-                        new SettlementEvent(payment.getPaymentId(), payment.getAmount()));
+                // 3. Async settlement publishing
+                publishSettlementAsync(payment);
             }
         } catch (Exception e) {
             log.error("Payment failed: {}", event.paymentId(), e);
-            kafkaTemplate.send("payment-dlq", event.paymentId(), event); // DLQ
+            kafkaTemplate.send("payment-dlq", event.paymentId(), event);
         }
     }
 
     public String initiatePayment(PaymentRequest request) {
         String paymentId = UUID.randomUUID().toString();
+
+        // Non-blocking with virtual threads
         kafkaTemplate.send("payments", paymentId,
                 new PaymentEvent(paymentId, request.amount(), request.currency()));
+
         return paymentId;
+    }
+
+    @Async // Will use virtual threads automatically
+    public CompletableFuture<Void> publishSettlementAsync(Payment payment) {
+        return CompletableFuture.runAsync(() -> {
+            kafkaTemplate.send("settlements", payment.getPaymentId(),
+                    new SettlementEvent(payment.getPaymentId(), payment.getAmount()));
+        });
     }
 }

@@ -1,15 +1,32 @@
 server:
   port: 8080
+  # Enable virtual threads for web server
+  tomcat:
+    threads:
+      max: 1000  # Can be much higher with virtual threads
+      min-spare: 100
 
 spring:
   application:
     name: payment-service
+
+  # Enable virtual threads globally
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5432/payments
     username: ${DB_USERNAME:payments}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    # Enhanced connection pool for virtual threads
+    hikari:
+      maximum-pool-size: 50  # Can be higher with virtual threads
+      minimum-idle: 10
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
 
   jpa:
     hibernate:
@@ -19,6 +36,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        # Optimized for virtual threads
+        connection:
+          provider_disables_autocommit: true
+        jdbc:
+          batch_size: 50
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -27,27 +49,43 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      # Enhanced for virtual threads
+      max-poll-records: 1000
+      fetch-max-wait: 500
       properties:
         spring.json.trusted.packages: "org.example.paymentservice.dto"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Optimized for high throughput with virtual threads
+      batch-size: 32768
+      linger-ms: 10
+      compression-type: snappy
 
 kafka:
   topic:
     payments: payments
   group-id: payment-service
 
+# Enhanced monitoring for virtual threads
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,threaddump
   endpoint:
     health:
       show-details: always
+    threaddump:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 logging:
   level:
     org.example.paymentservice: INFO
     org.springframework.kafka: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

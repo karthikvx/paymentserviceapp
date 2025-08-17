@@ -6,22 +6,8 @@ A high-throughput, event-driven payment processing service built with Spring Boo
 ## 🏗️ Architecture
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Client    │───▶│ REST API     │───▶│   Kafka     │
-│ Application │    │ (Payment     │    │  (payments) │
-└─────────────┘    │ Controller)  │    └─────────────┘
-└──────────────┘           │
-▼
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│ Settlement  │◀───│ Payment      │───▶│ Fraud Check │
-│ Service     │    │ Processor    │    │ Service     │
-└─────────────┘    └──────────────┘    └─────────────┘
-│
-▼
-┌──────────────┐
-│ PostgreSQL   │
-│ Database     │
-└──────────────┘
+![Architecture Diagram](./assets/payment-service-architecture.png)
+
 ```
 
 ## 🚀 Features
@@ -38,7 +24,7 @@ A high-throughput, event-driven payment processing service built with Spring Boo
 
 ## 🛠️ Technology Stack
 
-- **Java 17** - Programming language
+- **Java 21** - Programming language
 - **Spring Boot 3.2** - Application framework
 - **Apache Kafka** - Event streaming platform
 - **PostgreSQL** - Primary database
@@ -49,7 +35,7 @@ A high-throughput, event-driven payment processing service built with Spring Boo
 
 ## 📋 Prerequisites
 
-- Java 17 or higher
+- Java 21 or higher
 - Docker & Docker Compose
 - Gradle 7+
 - PostgreSQL 13+

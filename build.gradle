@@ -1,15 +1,15 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.springframework.boot' version '3.3.2'
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
 group = 'org.example'
 version = '1.0.0-SNAPSHOT'
 
 java {
-    sourceCompatibility = '17'
-    targetCompatibility = '17'
+    sourceCompatibility = '21'
+    targetCompatibility = '21'
 }
 
 configurations {
@@ -36,12 +36,12 @@ dependencies {
     implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
 
-    // gRPC (if needed for FraudCheckClient)
-    implementation 'net.devh:grpc-spring-boot-starter:2.15.0.RELEASE'
+    // gRPC (updated version for Java 21)
+    implementation 'net.devh:grpc-spring-boot-starter:3.1.0.RELEASE'
 
     // Utilities
-    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    implementation 'org.mapstruct:mapstruct:1.6.0'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.0'
 
     // Development
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -60,16 +60,23 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom 'org.testcontainers:testcontainers-bom:1.19.3'
+        mavenBom 'org.testcontainers:testcontainers-bom:1.20.1'
     }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs '--enable-preview' // If using preview features
 }
 
-// Build optimization
+// Build optimization with Java 21 features
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll(['-parameters'])
+    options.release = 21
+}
+
+// Enable virtual threads in bootRun
+tasks.named('bootRun') {
+    jvmArgs '--enable-preview' // If needed
 }
