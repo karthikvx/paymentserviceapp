@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: test-payment-service
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+kafka:
+  topic:
+    payments: test-payments
+  group-id: test-payment-service
+
+logging:
+  level:
+    org.example.paymentservice: DEBUG
+    org.springframework.kafka: WARN
